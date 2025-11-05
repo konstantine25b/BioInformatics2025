@@ -33,10 +33,21 @@ def seqalignDP(seq1,seq2,subst_matrix,gap_pen):
 	#         look up entries of the substitution matrix.
 	#        To get started, you can complete and run the algorithm filling in only F,
 	#         and then figure out how to do TB.
-
-
-
-
+	for i in range(1, len(seq1)+1):
+		for j in range(1, len(seq2)+1):
+			sub = subst_matrix[base_idx[seq1[i-1]]][base_idx[seq2[j-1]]]
+			diag = F[i-1][j-1] + sub
+			up = F[i-1][j] - gap_pen
+			left = F[i][j-1] - gap_pen
+			if diag >= up and diag >= left:
+				F[i][j] = diag
+				TB[i][j] = PTR_BASE
+			elif up >= left:
+				F[i][j] = up
+				TB[i][j] = PTR_GAP2
+			else:
+				F[i][j] = left
+				TB[i][j] = PTR_GAP1
 
 	return F[len(seq1)][len(seq2)], F, TB
 
