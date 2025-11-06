@@ -57,7 +57,19 @@ def viterbi(X):
             Vprev = V[i-1]
 
         for k in xrange(N):
-            pass
+            if i == 0:
+                V[i][k] = log(init_dist[k]) + log(em[k][X[i]])
+                TB[i][k] = 0
+                continue
+            best_val = None
+            best_state = 0
+            for j in xrange(N):
+                val = Vprev[j] + log(tr[j][k]) + log(em[k][X[i]])
+                if best_val is None or val > best_val:
+                    best_val = val
+                    best_state = j
+            V[i][k] = best_val
+            TB[i][k] = best_state
             # YOUR CODE HERE
             # Set V[i][k] to the appropriate value for the Viterbi matrix, based
             #  on Vprev (V[i-1]) and the model parameters.
