@@ -55,6 +55,10 @@ def readSeq(filename):
     return "".join(seq)
 
 
+def revcomp(seq):
+    comp = {'A':'T','C':'G','G':'C','T':'A','a':'T','c':'G','g':'C','t':'A'}
+    return "".join(comp.get(b, 'N') for b in seq[::-1])
+
 def quality(hits):
     """determines the quality of a list of hits"""
 
@@ -162,6 +166,15 @@ def main():
         for hit in lookup.get(key, []):
             hits.append((i, hit))
 
+    
+    rc2 = revcomp(seq2)
+    for i_rc in xrange(len(rc2) - kmerlen + 1):
+        key = rc2[i_rc:i_rc+kmerlen]
+      
+        i_orig = len(seq2) - kmerlen - i_rc
+        for hit in lookup.get(key, []):
+            hits.append((i_orig, hit))
+
     #
     # hits should be a list of tuples
     # [(index1_in_seq2, index1_in_seq1),
@@ -169,7 +182,7 @@ def main():
     #  ...]
     #
 
-    print "%d hits found" % len(hits)
+    print "%d hits found (forward + inversion)" % len(hits)
     print "making plot..."
     p = makeDotplot(plotfile, hits)
 
