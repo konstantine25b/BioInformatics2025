@@ -12,13 +12,13 @@ def seqalignDP(seq1,seq2,subst_matrix,gap_pen):
 	F = [[0 for j in range(len(seq2)+1)] for i in range(len(seq1)+1)]
 	TB = [[PTR_NONE for j in range(len(seq2)+1)] for i in range(len(seq1)+1)]
 
-	# initialize dynamic programming table for Needleman-Wunsch alignment (Durbin p.20)
+	
    	for i in range(1,len(seq1)+1):
    		F[i][0] = 0 - i*gap_pen
-		TB[i][0] = PTR_GAP2 # indicates a gap in seq2
+		TB[i][0] = PTR_GAP2 
 	for j in range(1,len(seq2)+1):
    		F[0][j] = 0 - j*gap_pen
-		TB[0][j] = PTR_GAP1 # indicates a gap in seq1
+		TB[0][j] = PTR_GAP1 
 
 
 
@@ -110,9 +110,13 @@ def main():
 	seq1 = readSeq(file1)
 	seq2 = readSeq(file2)
 
-	score, F, TB = seqalignDP(seq1,seq2,S,gap_pen)
 
-	print >> sys.stderr, score
+	score_xy, F, TB = seqalignDP(seq1,seq2,S,gap_pen)
+	sxx = seqalignDP(seq1,seq1,S,gap_pen)[0]
+	syy = seqalignDP(seq2,seq2,S,gap_pen)[0]
+	distance = max(sxx, syy) - score_xy
+
+	print >> sys.stderr, distance
 
 	s1, s2 = traceback(seq1,seq2,TB)
 	print s1
