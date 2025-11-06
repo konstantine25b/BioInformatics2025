@@ -139,7 +139,7 @@ def main():
 
 
     # length of hash key
-    kmerlen = 100
+    kmerlen = 120
 
     # hash table for finding hits
     lookup = {}
