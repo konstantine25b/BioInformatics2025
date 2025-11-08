@@ -144,6 +144,8 @@ def main():
 
     # length of hash key
     kmerlen = 120
+    skip=4
+    
 
     # hash table for finding hits
     lookup = {}
@@ -151,7 +153,7 @@ def main():
     # store sequence hashes in hash table
     print "hashing seq1..."
     for i in xrange(len(seq1) - kmerlen + 1):
-        key = seq1[i:i+kmerlen]
+        key = seq1[i+skip-1:i+kmerlen:skip]
         lookup.setdefault(key, []).append(i)
 
 
@@ -160,7 +162,7 @@ def main():
     print "hashing seq2..."
     hits = []
     for i in xrange(len(seq2) - kmerlen + 1):
-        key = seq2[i:i+kmerlen]
+        key = seq2[i+skip-1:i+kmerlen:skip]
 
         # store hits to hits list
         for hit in lookup.get(key, []):
