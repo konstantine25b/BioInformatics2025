@@ -84,6 +84,24 @@ def summarize_alignment(
 	return scores, ll_N, ll_C
 
 
+def log_likelihood_with_filter(
+	scores: List[int],
+	model_probs: Dict[int, float],
+	excluded_scores: set[int] | None = None,
+) -> float:
+	"""
+	Compute log-likelihood ignoring any columns whose score is in excluded_scores.
+	If all columns are excluded, returns 0.0 (neutral log-likelihood).
+	"""
+	if not scores:
+		return 0.0
+	excluded_scores = excluded_scores or set()
+	filtered = [s for s in scores if s not in excluded_scores]
+	if not filtered:
+		return 0.0
+	return model_log_likelihood(filtered, model_probs)
+
+
 def simulate_decision_rate_under_N(
 	model_N: Dict[int, float],
 	model_C: Dict[int, float],
@@ -137,6 +155,41 @@ def simulate_decision_rate_under_C(
 	se = (prop * (1.0 - prop) / num_sequences) ** 0.5
 	return prop, se, count_favor_N
 
+
+def simulate_with_filter(
+	model_source: Dict[int, float],
+	model_N: Dict[int, float],
+	model_C: Dict[int, float],
+	length: int,
+	num_sequences: int,
+	excluded_scores: set[int],
+	seed: int,
+	prefer_model: str,
+) -> Tuple[float, float, int]:
+	"""
+	Simulate from model_source, then classify using filtered likelihoods.
+	- prefer_model: 'N' counts cases P(N)>P(C); 'C' counts P(C)>P(N).
+	Returns (proportion, se, count).
+	"""
+	rng = random.Random(seed)
+	support = sorted(model_source.keys())
+	weights = [model_source[s] for s in support]
+
+	count = 0
+	for _ in range(num_sequences):
+		S = rng.choices(support, weights=weights, k=length)
+		llN = log_likelihood_with_filter(S, model_N, excluded_scores)
+		llC = log_likelihood_with_filter(S, model_C, excluded_scores)
+		if prefer_model == "C":
+			if llC > llN:
+				count += 1
+		else:
+			if llN > llC:
+				count += 1
+	prop = count / num_sequences
+	se = (prop * (1.0 - prop) / num_sequences) ** 0.5
+	return prop, se, count
+
 def main() -> None:
 	# Probability tables for scores given models N and C
 	# Scores: 0, 1, 2, 3, 6
@@ -187,6 +240,32 @@ def main() -> None:
 	print(f"Count where P(S | N) > P(S | C): {count_c} / 10000")
 	print(f"Proportion: {prop_c:.4f}")
 	print(f"Approx 95% CI: [{max(0.0, prop_c - 1.96*se_c):.4f}, {min(1.0, prop_c + 1.96*se_c):.4f}]")
+
+	# Part (d): assess ignoring score 0 columns
+	excluded = {0}
+	propN_filt, seN_filt, cntN_filt = simulate_with_filter(
+		model_source=model_N,
+		model_N=model_N,
+		model_C=model_C,
+		length=10,
+		num_sequences=10_000,
+		excluded_scores=excluded,
+		seed=777,
+		prefer_model="C",  # count cases where C is (incorrectly) preferred when source is N
+	)
+	propC_filt, seC_filt, cntC_filt = simulate_with_filter(
+		model_source=model_C,
+		model_N=model_N,
+		model_C=model_C,
+		length=10,
+		num_sequences=10_000,
+		excluded_scores=excluded,
+		seed=888,
+		prefer_model="N",  # count cases where N is (incorrectly) preferred when source is C
+	)
+	print("\n=== Part (d): Ignoring score 0 columns ===")
+	print(f"Under N: P(S|C) > P(S|N) after filtering 0s: {cntN_filt}/10000 -> {propN_filt:.4f} (95% CI [{max(0.0, propN_filt-1.96*seN_filt):.4f}, {min(1.0, propN_filt+1.96*seN_filt):.4f}])")
+	print(f"Under C: P(S|N) > P(S|C) after filtering 0s: {cntC_filt}/10000 -> {propC_filt:.4f} (95% CI [{max(0.0, propC_filt-1.96*seC_filt):.4f}, {min(1.0, propC_filt+1.96*seC_filt):.4f}])")
 
 
 if __name__ == "__main__":
