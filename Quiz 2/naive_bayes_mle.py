@@ -66,6 +66,36 @@ def pretty_print_table(title: str, table: Dict[str, Dict[str, float]]) -> None:
 	print()
 
 
+def classify_map(
+	priors: Dict[str, float],
+	p_gc_given_y: Dict[str, Dict[str, float]],
+	p_len_given_y: Dict[str, Dict[str, float]],
+	p_comp_given_y: Dict[str, Dict[str, float]],
+	x_gc: str,
+	x_len: str,
+	x_comp: str,
+) -> Tuple[str, Dict[str, float], Dict[str, float]]:
+	"""
+	Compute unnormalized posteriors and normalized posteriors for the MAP decision.
+	Returns (map_class, unnormalized, normalized).
+	"""
+	unnormalized: Dict[str, float] = {}
+	for y in priors:
+		unnormalized[y] = (
+			priors[y]
+			* p_gc_given_y[y].get(x_gc, 0.0)
+			* p_len_given_y[y].get(x_len, 0.0)
+			* p_comp_given_y[y].get(x_comp, 0.0)
+		)
+	total = sum(unnormalized.values())
+	if total > 0.0:
+		normalized = {y: unnormalized[y] / total for y in unnormalized}
+	else:
+		normalized = {y: 0.0 for y in unnormalized}
+	map_class = max(unnormalized, key=unnormalized.get)
+	return map_class, unnormalized, normalized
+
+
 def main() -> None:
 	data = load_training()
 
@@ -88,6 +118,20 @@ def main() -> None:
 	pretty_print_table("P(Length | Y)", p_len_given_y)
 	pretty_print_table("P(Complexity | Y)", p_comp_given_y)
 
+	# Part (c): MAP for x = (GC=Medium, Length=Long, Complexity=Low)
+	x_gc, x_len, x_comp = "Medium", "Long", "Low"
+	map_class, unnorm, norm = classify_map(
+		priors, p_gc_given_y, p_len_given_y, p_comp_given_y, x_gc, x_len, x_comp
+	)
+	print("MAP classification for x = (GC=Medium, Length=Long, Complexity=Low)")
+	print("Unnormalized posteriors (P(Y)*P(GC|Y)*P(Length|Y)*P(Complexity|Y)):")
+	for y in sorted(unnorm.keys()):
+		print(f"{y}\t{unnorm[y]:.6f}")
+	print("Normalized posteriors:")
+	for y in sorted(norm.keys()):
+		print(f"{y}\t{norm[y]:.6f}")
+	print(f"MAP class: {map_class}")
+	print()
 
 if __name__ == "__main__":
 	main()
